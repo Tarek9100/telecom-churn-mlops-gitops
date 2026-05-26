@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: churn-api
-          image: ghcr.io/tarek9100/telecom-churn-mlops-gitops:latest
+          image: tarek910/telecom-churn-mlops-gitops:latest
           imagePullPolicy: Always
           ports:
             - name: http
