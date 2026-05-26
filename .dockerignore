@@ -1,0 +1,11 @@
+.venv
+__pycache__
+*.pyc
+.git
+.github
+data
+models
+k8s
+argocd
+.dvc
+*.log
