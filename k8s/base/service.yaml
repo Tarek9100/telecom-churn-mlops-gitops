@@ -5,6 +5,8 @@ metadata:
   namespace: churn
   labels:
     app: churn-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   type: NodePort
   selector:
