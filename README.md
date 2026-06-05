@@ -442,9 +442,3 @@ Planned improvements:
 - Better production-grade security hardening
 
 ---
-
-## CV Summary
-
-Built an end-to-end GitOps-based MLOps inference platform for a telecom churn prediction model using FastAPI, Docker, GitHub Actions, Docker Hub, Kubernetes kind, Argo CD, and KServe.
-
-The platform automates model training, container image publishing, Kubernetes deployment, and exposes real-time inference through both a standard Kubernetes service and a KServe custom predictor.
