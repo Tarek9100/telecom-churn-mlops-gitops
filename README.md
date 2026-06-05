@@ -1,22 +1,33 @@
-# Telecom Churn MLOps GitOps Demo
+# Telecom Churn MLOps GitOps Platform
 
-This project demonstrates a minimal end-to-end MLOps workflow for a telecom customer churn prediction model.
+A practical end-to-end MLOps project for serving a telecom customer churn prediction model using modern DevOps, GitOps, and Kubernetes-native ML serving practices.
 
-It starts from a simple machine learning model and extends it into a containerized, Kubernetes-based, GitOps-driven inference deployment.
+This project starts from a simple churn prediction model and extends it into a complete local MLOps platform with:
+
+- model training
+- FastAPI inference
+- Docker image build
+- GitHub Actions CI/CD
+- Docker Hub image publishing
+- Kubernetes deployment on kind
+- Argo CD GitOps deployment
+- KServe custom predictor deployment
 
 ---
 
-## What the Model Does
+## Project Overview
+
+The goal of this project is to demonstrate how a machine learning model can move from a local Python script into a deployable, automated, Kubernetes-based inference platform.
 
 The model predicts whether a telecom customer is likely to churn based on customer attributes such as:
 
-- Age
-- Tenure in months
-- Monthly charges
-- Total charges
-- Number of support calls
+- age
+- customer tenure
+- monthly charges
+- total charges
+- number of support calls
 
-Example input:
+Example request:
 
 ```json
 {
@@ -28,7 +39,7 @@ Example input:
 }
 ```
 
-Example output:
+Example response:
 
 ```json
 {
@@ -46,10 +57,10 @@ Developer
   ↓ git push
 GitHub Repository
   ↓ triggers
-GitHub Actions
+GitHub Actions CI/CD
   ↓ builds and pushes image
 Docker Hub
-  ↓ pulled by Kubernetes
+  ↓ image pulled by Kubernetes
 kind Kubernetes Cluster
   ↑ synced by Argo CD
 FastAPI Churn Inference API
@@ -60,30 +71,32 @@ KServe extension:
 ```text
 KServe InferenceService
   ↓
-KServe-created Predictor Deployment
+KServe Predictor Deployment
   ↓
 FastAPI Churn Model Container
   ↓
 Prediction Response
 ```
 
+> The base Kubernetes application is managed by Argo CD from `k8s/base`.
+>
+> The KServe `InferenceService` manifest is stored in Git under `k8s/kserve` and is applied manually in this local lab after KServe is installed. This keeps the GitOps baseline stable while still demonstrating Kubernetes-native model serving with KServe.
+
 ---
 
 ## Tech Stack
 
-- Python
-- pandas
-- scikit-learn
-- FastAPI
-- Uvicorn
-- Docker
-- Docker Hub
-- Kubernetes
-- kind
-- Argo CD
-- GitHub Actions
-- Kustomize
-- KServe
+| Category | Tools |
+|---|---|
+| Model development | Python, pandas, scikit-learn |
+| API serving | FastAPI, Uvicorn |
+| Containerization | Docker |
+| Registry | Docker Hub |
+| CI/CD | GitHub Actions |
+| Kubernetes | kind, kubectl, Kustomize |
+| GitOps | Argo CD |
+| ML serving | KServe |
+| Local lab | Vagrant, VirtualBox, Ubuntu |
 
 ---
 
@@ -110,9 +123,56 @@ Prediction Response
 │       └── kustomization.yaml
 ├── argocd/
 │   └── application.yaml
+├── docs/
+│   └── images/
+│       ├── 01-github-actions-success.png
+│       ├── 02-argocd-healthy.png
+│       ├── 03-k8s-base-resources.png
+│       ├── 04-base-api-prediction.png
+│       ├── 05-kserve-ready.png
+│       └── 06-kserve-prediction.png
 └── .github/
     └── workflows/
         └── mlops-ci.yaml
+```
+
+---
+
+## End-to-End Workflow
+
+```text
+1. Developer pushes code to GitHub
+2. GitHub Actions starts the CI/CD workflow
+3. Synthetic churn dataset is generated
+4. The churn model is trained
+5. The model artifact is validated
+6. Docker image is built
+7. Image is pushed to Docker Hub
+8. Argo CD syncs Kubernetes manifests from Git
+9. Kubernetes pulls the image and runs the FastAPI app
+10. KServe can serve the same image as a custom predictor
+11. Client sends prediction request and receives churn result
+```
+
+---
+
+## CI/CD Pipeline
+
+GitHub Actions performs:
+
+1. checkout source code
+2. install Python dependencies
+3. create runtime directories
+4. generate synthetic churn dataset
+5. train churn model
+6. validate generated model artifact
+7. build Docker image
+8. push Docker image to Docker Hub
+
+Docker image:
+
+```text
+tarek910/telecom-churn-mlops-gitops:latest
 ```
 
 ---
@@ -139,7 +199,7 @@ Create runtime directories:
 mkdir -p data models
 ```
 
-Generate synthetic data:
+Generate data:
 
 ```bash
 python generate_data.py
@@ -151,7 +211,7 @@ Train the model:
 python train.py
 ```
 
-Run the API locally:
+Run the API:
 
 ```bash
 python -m uvicorn api:app --host 0.0.0.0 --port 8000 --reload
@@ -169,13 +229,13 @@ curl -X POST http://localhost:8000/predict \
 
 ## Docker
 
-Build the container image:
+Build locally:
 
 ```bash
 docker build -t telecom-churn-mlops-gitops:local .
 ```
 
-Run the container:
+Run locally:
 
 ```bash
 docker run --rm -p 8000:8000 telecom-churn-mlops-gitops:local
@@ -187,27 +247,6 @@ Test:
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{"age":45,"tenure_months":24,"monthly_charges":79.99,"total_charges":1920,"num_support_calls":3}'
-```
-
----
-
-## CI/CD with GitHub Actions
-
-GitHub Actions performs the following steps:
-
-1. Checks out the repository.
-2. Installs Python dependencies.
-3. Creates runtime directories.
-4. Generates the synthetic churn dataset.
-5. Trains the churn model.
-6. Validates the generated model artifact.
-7. Builds the Docker image.
-8. Pushes the image to Docker Hub.
-
-Docker image:
-
-```text
-tarek910/telecom-churn-mlops-gitops:latest
 ```
 
 ---
@@ -229,15 +268,7 @@ kubectl apply -k k8s/base
 Check resources:
 
 ```bash
-kubectl get deploy,rs,pod,svc -n churn
-```
-
-Expected resources:
-
-```text
-deployment.apps/churn-api
-service/churn-api
-pod/churn-api-xxxxx
+kubectl get deploy,rs,pod,svc -n churn -o wide
 ```
 
 Test through NodePort:
@@ -277,7 +308,7 @@ NAME        SYNC STATUS   HEALTH STATUS
 churn-api   Synced        Healthy
 ```
 
-The Argo CD application watches:
+Argo CD watches:
 
 ```text
 k8s/base
@@ -289,7 +320,7 @@ and continuously reconciles the Kubernetes cluster with the desired state stored
 
 ## KServe Custom Predictor
 
-This project includes a KServe `InferenceService` that deploys the FastAPI churn model container as a custom predictor.
+This project includes a KServe `InferenceService` that deploys the same FastAPI churn model container as a custom predictor.
 
 KServe manifest:
 
@@ -297,7 +328,7 @@ KServe manifest:
 k8s/kserve/inferenceservice.yaml
 ```
 
-Apply manually:
+Apply manually after KServe is installed:
 
 ```bash
 kubectl apply -k k8s/kserve
@@ -316,7 +347,7 @@ Expected:
 churn-predictor   True
 ```
 
-KServe creates a predictor service similar to:
+KServe creates a predictor service:
 
 ```text
 churn-predictor-predictor
@@ -347,31 +378,41 @@ Example response:
 
 ---
 
-## End-to-End Workflow
+## Proof of Execution
 
-```text
-Developer pushes code
-  ↓
-GitHub Actions runs CI/CD
-  ↓
-Model is trained
-  ↓
-Docker image is built
-  ↓
-Image is pushed to Docker Hub
-  ↓
-Argo CD syncs Kubernetes manifests
-  ↓
-Kubernetes pulls the Docker image
-  ↓
-FastAPI inference API runs in the cluster
-  ↓
-KServe can serve the same image as a custom predictor
-```
+### 1. GitHub Actions Pipeline
+
+![GitHub Actions Success](docs/images/01-github-actions-success.png)
+
+### 2. Argo CD GitOps Sync
+
+![Argo CD Healthy](docs/images/02-argocd-healthy.png)
+
+### 3. Kubernetes Base Deployment
+
+![Kubernetes Base Resources](docs/images/03-k8s-base-resources.png)
+
+### 4. Base API Prediction
+
+![Base API Prediction](docs/images/04-base-api-prediction.png)
+
+### 5. KServe InferenceService
+
+![KServe Ready](docs/images/05-kserve-ready.png)
+
+### 6. KServe Prediction
+
+![KServe Prediction](docs/images/06-kserve-prediction.png)
 
 ---
 
 ## Validation Commands
+
+Check node:
+
+```bash
+kubectl get nodes -o wide
+```
 
 Check Argo CD:
 
@@ -389,7 +430,7 @@ Check deployed image:
 
 ```bash
 kubectl get deployment churn-api -n churn \
-  -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+  -o jsonpath='{.spec.template.spec.containers[0].image}{"\\n"}'
 ```
 
 Check KServe:
@@ -421,24 +462,25 @@ curl -X POST http://localhost:8090/predict \
 
 Implemented:
 
-- Synthetic churn data generation
-- Churn model training
+- synthetic churn data generation
+- churn model training
 - FastAPI inference API
 - Dockerized model serving
 - Docker Hub image publishing
 - GitHub Actions CI/CD
 - Kubernetes deployment on kind
-- Argo CD GitOps deployment
-- KServe custom predictor
-- Working real-time inference endpoint
+- Argo CD GitOps deployment for the base application
+- KServe custom predictor manifest
+- working real-time inference through Kubernetes service
+- working real-time inference through KServe predictor service
 
 Planned improvements:
 
-- DVC for model/data versioning
+- DVC for model and dataset versioning
 - Prometheus and Grafana monitoring
-- Request/response logging
-- Model performance tracking
-- Canary or blue-green rollout strategy
-- Better production-grade security hardening
+- request/response logging
+- model performance tracking
+- canary or blue-green rollout strategy
+- production-grade security hardening
 
 ---
