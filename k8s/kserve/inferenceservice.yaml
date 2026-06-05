@@ -1,0 +1,21 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: churn-predictor
+  namespace: churn
+spec:
+  predictor:
+    containers:
+      - name: kserve-container
+        image: tarek910/telecom-churn-mlops-gitops:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 8000
+            protocol: TCP
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
