@@ -52,6 +52,9 @@ Example response:
 
 ## Architecture
 
+## High-Level Architecture
+
+![Architecture Diagram](docs/images/00-architecture-diagram.png)
 ```text
 Developer
   ↓ git push
